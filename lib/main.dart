@@ -20,6 +20,19 @@ class _HomeState extends State<Home> {
 
   List _todoList = [];
 
+  Map<String, dynamic> _lastRemoved;
+  int _lastRemovedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _readData().then((data) {
+      setState(() {
+        _todoList = json.decode(data);
+      });
+    });
+  }
+
   void _addTask() {
     setState(() {
       Map<String, dynamic> newTask = Map();
@@ -27,6 +40,7 @@ class _HomeState extends State<Home> {
       newTask["ok"] = false;
       _todoController.text = "";
       _todoList.add(newTask);
+      _saveData();
     });
   }
 
@@ -67,25 +81,59 @@ class _HomeState extends State<Home> {
           ),
           Expanded(
               child: ListView.builder(
-            itemBuilder: (context, index) {
-              return CheckboxListTile(
-                value: _todoList[index]["ok"],
-                secondary: CircleAvatar(
-                    child: Icon(
-                        _todoList[index]["ok"] ? Icons.check : Icons.error
-                      )
-                    ),
-                title: Text(_todoList[index]["title"]),
-                onChanged: (value) {
-                  _checkTask(value, index);
-                }
-              );
-            },
+            itemBuilder: buildItem,
             padding: EdgeInsets.only(top: 10.0),
             itemCount: _todoList.length,
           ))
         ],
       ),
+    );
+  }
+
+  Widget buildItem(context, index) {
+    return Dismissible(
+      background: Container(
+          color: Colors.red,
+          child: Align(
+            alignment: Alignment(-0.9, 0.0),
+            child: Icon(Icons.delete, color: Colors.white),
+          )),
+      direction: DismissDirection.startToEnd,
+      child: CheckboxListTile(
+          value: _todoList[index]["ok"],
+          secondary: CircleAvatar(
+              child: Icon(_todoList[index]["ok"] ? Icons.check : Icons.error)),
+          title: Text(_todoList[index]["title"]),
+          onChanged: (value) {
+            _checkTask(value, index);
+            _saveData();
+          }),
+      key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
+      onDismissed: (direction) {
+       setState(() {
+          _lastRemoved = Map.from(_todoList[index]);
+          _lastRemovedIndex = index;
+          _todoList.removeAt(index);
+
+          _saveData();
+
+          final snack = SnackBar(
+            content: Text("Task ${_lastRemoved["title"]} removida."),
+            action: SnackBarAction(
+              label: "Desfazer", 
+              onPressed: () {
+                setState(() {
+                  _todoList.insert(_lastRemovedIndex, _lastRemoved);
+                  _saveData();
+                });
+              },
+            ),
+            duration: Duration(seconds: 5)   
+          );
+
+          Scaffold.of(context).showSnackBar(snack);
+       });
+      },
     );
   }
 
