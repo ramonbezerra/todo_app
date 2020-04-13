@@ -16,7 +16,25 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  List _todoList = ["Mariazinha", "Joaozinho"];
+  final _todoController = TextEditingController();
+
+  List _todoList = [];
+
+  void _addTask() {
+    setState(() {
+      Map<String, dynamic> newTask = Map();
+      newTask["title"] = _todoController.text;
+      newTask["ok"] = false;
+      _todoController.text = "";
+      _todoList.add(newTask);
+    });
+  }
+
+  void _checkTask(value, index) {
+    setState(() {
+      _todoList[index]["ok"] = value;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,26 +52,38 @@ class _HomeState extends State<Home> {
               children: <Widget>[
                 Expanded(
                   child: TextField(
+                    controller: _todoController,
                     decoration: InputDecoration(labelText: "New Task"),
                   ),
                 ),
                 RaisedButton(
                   color: Colors.blueAccent,
                   child: Text("Add"),
-                  onPressed: () {},
+                  onPressed: _addTask,
                   textColor: Colors.white,
                 )
               ],
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemBuilder: (context, index) {
-                return ListTile(title: Text(_todoList[index]));
-              },
-              padding: EdgeInsets.only(top: 10.0),
-              itemCount: _todoList.length,)
-          )
+              child: ListView.builder(
+            itemBuilder: (context, index) {
+              return CheckboxListTile(
+                value: _todoList[index]["ok"],
+                secondary: CircleAvatar(
+                    child: Icon(
+                        _todoList[index]["ok"] ? Icons.check : Icons.error
+                      )
+                    ),
+                title: Text(_todoList[index]["title"]),
+                onChanged: (value) {
+                  _checkTask(value, index);
+                }
+              );
+            },
+            padding: EdgeInsets.only(top: 10.0),
+            itemCount: _todoList.length,
+          ))
         ],
       ),
     );
